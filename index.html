@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hill Run - By Avinab</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            overflow: hidden;
+            background-color: #87CEEB; 
+            touch-action: none; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* In-Game UI */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            display: none; 
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 15px;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.7);
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .fuel-container {
+            width: 150px;
+            background: #333;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            height: 25px;
+            margin-top: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #fuelBar {
+            height: 100%;
+            width: 100%;
+            background: #3498db;
+            transition: width 0.1s linear;
+        }
+
+        .fuel-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 0;
+            font-size: 14px;
+            color: white;
+            line-height: 19px;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 40px;
+            padding-bottom: 40px; 
+        }
+
+        .btn {
+            pointer-events: auto; 
+            width: 100px; height: 100px;
+            background: rgba(46, 204, 113, 0.8);
+            border: 4px solid #27ae60;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px; color: white;
+            box-shadow: 0 8px 0 rgba(39, 174, 96, 0.8);
+            transition: transform 0.1s, box-shadow 0.1s;
+            cursor: pointer;
+        }
+
+        .btn:active, .btn.pressed {
+            transform: translateY(8px);
+            box-shadow: 0 0 0 rgba(39, 174, 96, 0.8);
+            background: rgba(39, 174, 96, 1);
+        }
+
+        #btnBackward { background: rgba(231, 76, 60, 0.8); border-color: #c0392b; box-shadow: 0 8px 0 rgba(192, 57, 43, 0.8); }
+        #btnBackward:active, #btnBackward.pressed { background: rgba(192, 57, 43, 1); box-shadow: 0 0 0 rgba(192, 57, 43, 0.8); }
+
+        /* Menu Systems */
+        .menu-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+
+        .menu-box {
+            background: #fff;
+            color: #333;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .menu-box h1 { font-size: 42px; color: #2c3e50; margin-bottom: 2px; letter-spacing: 1px; }
+        .author-text { font-size: 14px; color: #95a5a6; margin-bottom: 20px; font-style: italic; }
+        .high-score-text { font-size: 18px; margin-bottom: 20px; color: #7f8c8d; font-weight: bold;}
+        
+        /* Garage Grid Selection */
+        .garage-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #34495e;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: left;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+
+        .garage-grid {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .car-option {
+            flex: 1;
+            border: 3px solid #bdc3c7;
+            border-radius: 12px;
+            padding: 12px 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+        }
+
+        .car-option.selected {
+            border-color: #e67e22;
+            background: #fef5e7;
+            transform: scale(1.05);
+        }
+
+        .car-name { font-weight: bold; font-size: 14px; margin-bottom: 4px; color: #2c3e50; }
+        .car-stat { font-size: 11px; color: #7f8c8d; line-height: 1.3; }
+
+        .menu-btn {
+            background: #f39c12;
+            border: none;
+            padding: 15px 50px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #d68910;
+            transition: transform 0.1s, box-shadow 0.1s;
+            width: 100%;
+        }
+
+        .menu-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #d68910;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="welcomeScreen" class="menu-overlay">
+        <div class="menu-box">
+            <h1>Hill Run</h1>
+            <div class="author-text">by Avinab</div>
+            <p class="high-score-text" style="margin-bottom: 30px;">🏆 High Score: <span id="welcomeHighScore">0</span></p>
+            <button class="menu-btn" style="background: #2ecc71; box-shadow: 0 6px 0 #27ae60;" onclick="goToGarage()">START GAME</button>
+        </div>
+    </div>
+
+    <div id="startScreen" class="menu-overlay hidden">
+        <div class="menu-box">
+            <h1 style="font-size: 32px;">Garage</h1>
+            <p class="high-score-text" style="margin-bottom: 15px;">Choose Your Vehicle</p>
+            
+            <div class="garage-grid">
+                <div class="car-option selected" onclick="selectCar(0)">
+                    <div class="car-name">Red Jeep</div>
+                    <div class="car-stat">Speed: ⭐️⭐️<br>Climb: ⭐️⭐️</div>
+                </div>
+                <div class="car-option" onclick="selectCar(1)">
+                    <div class="car-name">Monster</div>
+                    <div class="car-stat">Speed: ⭐️<br>Climb: ⭐️⭐️⭐️</div>
+                </div>
+                <div class="car-option" onclick="selectCar(2)">
+                    <div class="car-name">Formula</div>
+                    <div class="car-stat">Speed: ⭐️⭐️⭐️<br>Climb: ⭐️</div>
+                </div>
+            </div>
+
+            <button class="menu-btn" onclick="startGame()">DRIVE</button>
+        </div>
+    </div>
+
+    <div id="gameOverScreen" class="menu-overlay hidden">
+        <div class="menu-box">
+            <h1>OUT OF FUEL!</h1>
+            <p style="font-size: 20px; margin: 15px 0 5px 0;">Score: <span id="endScore" style="font-weight:bold; color:#e67e22;">0</span></p>
+            <p class="car-stat" style="font-size:14px; margin-bottom: 20px;">Distance: <span id="endDistance">0</span>m</p>
+            <p class="high-score-text" style="border-top: 1px solid #eee; padding-top: 15px;">🏆 High Score: <span id="endHighScore">0</span></p>
+            <button class="menu-btn" onclick="showGarage()">BACK TO GARAGE</button>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div>
+                <div id="distanceDisplay">0m</div>
+                <div class="fuel-container">
+                    <div id="fuelBar"></div>
+                    <div class="fuel-text">FUEL</div>
+                </div>
+            </div>
+            <div id="scoreDisplay" style="color: #f39c12; font-size: 24px;">💰 0</div>
+        </div>
+        <div id="controls">
+            <div id="btnBackward" class="btn">◀</div>
+            <div id="btnForward" class="btn">▶</div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const uiLayer = document.getElementById('ui-layer');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const distanceDisplay = document.getElementById('distanceDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const fuelBar = document.getElementById('fuelBar');
+        
+        let screenHeight = window.innerHeight;
+        let screenWidth = window.innerWidth;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            screenWidth = canvas.width;
+            screenHeight = canvas.height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // High Score Loading
+        let highScore = localStorage.getItem('hillClimbHighScore') || 0;
+        document.getElementById('welcomeHighScore').innerText = highScore;
+
+        // Inputs
+        const keys = { forward: false, backward: false };
+        const bindButton = (id, key) => {
+            const btn = document.getElementById(id);
+            const press = (e) => { e.preventDefault(); keys[key] = true; btn.classList.add('pressed'); };
+            const release = (e) => { e.preventDefault(); keys[key] = false; btn.classList.remove('pressed'); };
+            btn.addEventListener('touchstart', press, { passive: false });
+            btn.addEventListener('touchend', release);
+            btn.addEventListener('mousedown', press);
+            btn.addEventListener('mouseup', release);
+            btn.addEventListener('mouseleave', release);
+        };
+        bindButton('btnForward', 'forward');
+        bindButton('btnBackward', 'backward');
+
+        // Physics Baseline Constants
+        const gravity = 0.4;
+        const friction = 0.95;
+
+        // Vehicle Profiles
+        const carGarage = [
+            { name: "Jeep",    color: "#e74c3c", width: 80, height: 30, wheelR: 15, power: 0.35, maxSpd: 12 },
+            { name: "Monster", color: "#9b59b6", width: 90, height: 38, wheelR: 24, power: 0.48, maxSpd: 9  },
+            { name: "Formula", color: "#f1c40f", width: 85, height: 20, wheelR: 11, power: 0.50, maxSpd: 17 }
+        ];
+        let selectedCarIdx = 0;
+
+        function selectCar(idx) {
+            selectedCarIdx = idx;
+            const options = document.querySelectorAll('.car-option');
+            options.forEach((opt, i) => {
+                if(i === idx) opt.classList.add('selected');
+                else opt.classList.remove('selected');
+            });
+        }
+        
+        function goToGarage() {
+            welcomeScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        // Game States
+        let gameState = 'START'; 
+        let car, terrainMap, collectibles, distance, score, fuel;
+        const maxFuel = 100;
+        const chunkSize = 250;
+
+        function initGame() {
+            let activeSpecs = carGarage[selectedCarIdx];
+            
+            car = { 
+                x: 100, y: 0, vx: 0, vy: 0, angle: 0, 
+                width: activeSpecs.width, 
+                height: activeSpecs.height, 
+                wheelR: activeSpecs.wheelR,
+                enginePower: activeSpecs.power,
+                maxSpeed: activeSpecs.maxSpd,
+                color: activeSpecs.color
+            };
+            
+            terrainMap = [
+                { x: -500, y: screenHeight * 0.6 },
+                { x: 0, y: screenHeight * 0.6 },
+                { x: 250, y: screenHeight * 0.6 }
+            ];
+            collectibles = [];
+            distance = 0;
+            score = 0;
+            fuel = maxFuel;
+            keys.forward = false;
+            keys.backward = false;
+        }
+
+        function startGame() {
+            initGame();
+            gameState = 'PLAYING';
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            uiLayer.style.display = 'flex';
+        }
+
+        function showGarage() {
+            gameState = 'START';
+            gameOverScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            uiLayer.style.display = 'none';
+            
+            let finalScore = distance + score;
+            if (finalScore > highScore) {
+                highScore = finalScore;
+                localStorage.setItem('hillClimbHighScore', highScore);
+            }
+
+            document.getElementById('endScore').innerText = finalScore;
+            document.getElementById('endDistance').innerText = distance;
+            document.getElementById('endHighScore').innerText = highScore;
+            document.getElementById('welcomeHighScore').innerText = highScore;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function getTerrainY(x) {
+            while (terrainMap[terrainMap.length - 1].x < x + screenWidth * 2) {
+                let lastPoint = terrainMap[terrainMap.length - 1];
+                let heightChange = (Math.random() - 0.5) * 350; 
+                let newY = lastPoint.y + heightChange;
+                newY = Math.max(screenHeight * 0.3, Math.min(screenHeight * 0.9, newY));
+                
+                let newX = lastPoint.x + chunkSize;
+                terrainMap.push({ x: newX, y: newY });
+
+                if (Math.random() > 0.3 && newX > 500) {
+                    let isFuel = Math.random() < 0.25; 
+                    collectibles.push({
+                        x: lastPoint.x + (Math.random() * chunkSize),
+                        type: isFuel ? 'fuel' : 'coin',
+                        collected: false
+                    });
+                }
+            }
+
+            if (terrainMap[1].x < car.x - screenWidth) terrainMap.shift();
+
+            let leftChunk = terrainMap[0], rightChunk = terrainMap[1];
+            for (let i = 0; i < terrainMap.length - 1; i++) {
+                if (x >= terrainMap[i].x && x < terrainMap[i + 1].x) {
+                    leftChunk = terrainMap[i];
+                    rightChunk = terrainMap[i + 1];
+                    break;
+                }
+            }
+
+            let mu = (x - leftChunk.x) / chunkSize;
+            let mu2 = (1 - Math.cos(mu * Math.PI)) / 2;
+            return leftChunk.y * (1 - mu2) + rightChunk.y * mu2;
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            // DYNAMIC FUEL DRAIN SYSTEM
+            let fuelDrainRate = 0.01; // Tiny baseline rate when completely parked/idling
+            
+            if (keys.forward || keys.backward) {
+                fuelDrainRate = 0.12; // Higher usage when actively pressing gas/brakes
+            } else if (Math.abs(car.vx) > 0.5) {
+                fuelDrainRate = 0.05; // Medium usage if rolling/coasting down hills under momentum
+            }
+
+            fuel -= fuelDrainRate; 
+            if (fuel <= 0) {
+                endGame();
+                return;
+            }
+
+            car.vy += gravity;
+            car.x += car.vx;
+            car.y += car.vy;
+
+            const groundY = getTerrainY(car.x);
+            const isGrounded = car.y >= groundY - car.wheelR - car.height / 2;
+
+            if (isGrounded) {
+                car.y = groundY - car.wheelR - car.height / 2;
+                car.vy = 0;
+
+                const nextGroundY = getTerrainY(car.x + 5);
+                const slopeAngle = Math.atan2(nextGroundY - groundY, 5);
+                car.angle = slopeAngle;
+                
+                car.vx -= Math.sin(slopeAngle) * 0.8;
+
+                if (keys.forward) car.vx += car.enginePower;
+                if (keys.backward) car.vx -= car.enginePower;
+
+                car.vx *= friction;
+
+                // ABSOLUTE DEADZONE FOR STOPPING
+                if (!keys.forward && !keys.backward && Math.abs(car.vx) < 0.05) {
+                    car.vx = 0;
+                }
+
+                if (car.vx > car.maxSpeed) car.vx = car.maxSpeed;
+                if (car.vx < -car.maxSpeed) car.vx = -car.maxSpeed;
+            } else {
+                if (keys.forward) car.angle -= 0.04; 
+                if (keys.backward) car.angle += 0.04; 
+            }
+
+            // Check Collectibles
+            for (let i = 0; i < collectibles.length; i++) {
+                let item = collectibles[i];
+                if (!item.collected) {
+                    let itemY = getTerrainY(item.x) - 25;
+                    let dx = car.x - item.x;
+                    let dy = car.y - itemY;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < car.wheelR + 25) { 
+                        item.collected = true;
+                        if (item.type === 'coin') score += 100;
+                        if (item.type === 'fuel') fuel = Math.min(maxFuel, fuel + 40);
+                    }
+                }
+            }
+
+            collectibles = collectibles.filter(item => item.x > car.x - screenWidth);
+
+            distance = Math.max(0, Math.floor(car.x / 50));
+            distanceDisplay.innerText = `${distance}m`;
+            scoreDisplay.innerText = `💰 ${score}`;
+            
+            let fuelPercent = (fuel / maxFuel) * 100;
+            fuelBar.style.width = `${fuelPercent}%`;
+            if (fuelPercent < 20) fuelBar.style.background = '#e74c3c';
+            else fuelBar.style.background = '#3498db';
+        }
+
+        function draw() {
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'START') return;
+
+            ctx.save();
+            const cameraOffsetX = car.x - canvas.width * 0.3;
+            ctx.translate(-cameraOffsetX, 0);
+
+            // Draw Terrain
+            ctx.beginPath();
+            ctx.moveTo(cameraOffsetX - 100, canvas.height);
+            for (let i = cameraOffsetX - 100; i < cameraOffsetX + canvas.width + 100; i += 15) {
+                ctx.lineTo(i, getTerrainY(i));
+            }
+            ctx.lineTo(cameraOffsetX + canvas.width + 100, canvas.height);
+            ctx.fillStyle = "#27ae60"; 
+            ctx.fill();
+            ctx.lineWidth = 12;
+            ctx.strokeStyle = "#2ecc71"; 
+            ctx.stroke();
+
+            // Draw Items
+            collectibles.forEach(item => {
+                if (!item.collected) {
+                    let itemY = getTerrainY(item.x) - 25;
+                    if (item.type === 'coin') {
+                        ctx.fillStyle = "#f1c40f";
+                        ctx.beginPath();
+                        ctx.arc(item.x, itemY, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = "#f39c12";
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    } else if (item.type === 'fuel') {
+                        ctx.fillStyle = "#e74c3c";
+                        ctx.fillRect(item.x - 6, itemY - 20, 12, 5);
+                        ctx.fillStyle = "#2980b9";
+                        ctx.fillRect(item.x - 12, itemY - 15, 24, 25);
+                        ctx.strokeStyle = "#fff";
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(item.x - 12, itemY - 15, 24, 25);
+                    }
+                }
+            });
+
+            // Draw Selected Car
+            ctx.save();
+            ctx.translate(car.x, car.y);
+            ctx.rotate(car.angle);
+
+            // Frame Body
+            ctx.fillStyle = car.color; 
+            ctx.beginPath();
+            ctx.roundRect(-car.width / 2, -car.height / 2, car.width, car.height, 10);
+            ctx.fill();
+
+            // Cockpit Window
+            ctx.fillStyle = "#ecf0f1";
+            ctx.beginPath();
+            ctx.roundRect(-5, -car.height * 0.8, car.width * 0.4, car.height * 0.8, 5);
+            ctx.fill();
+
+            // Wheels
+            const drawWheel = (xOffset) => {
+                ctx.fillStyle = "#2c3e50";
+                ctx.beginPath();
+                ctx.arc(xOffset, car.height / 2, car.wheelR, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = "#bdc3c7";
+                ctx.beginPath();
+                const wheelRotation = car.x / car.wheelR; 
+                ctx.arc(xOffset, car.height / 2, car.wheelR * 0.5, wheelRotation, wheelRotation + Math.PI);
+                ctx.fill();
+            };
+
+            drawWheel(-car.width / 2 + 10); 
+            drawWheel(car.width / 2 - 10);  
+
+            ctx.restore();
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
